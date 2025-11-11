@@ -17,14 +17,13 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// CRITICAL FIX: Determine the correct constructor location.
-// In many Node.js ESM environments, the constructor for CJS-designed libraries
-// ends up nested under a 'default' property of the namespace import.
-const GeminiAIConstructor = genai.GoogleGenerativeAI 
-    || (genai.default && genai.default.GoogleGenerativeAI) 
-    || null;
+// CRITICAL FIX: The final attempt at module resolution.
+// When importing a CommonJS library into an ES Module environment, the main 
+// export (the class constructor) is often nested directly under the '.default' 
+// property of the namespace object.
+const GeminiAIConstructor = genai.default; 
 
-if (!GeminiAIConstructor) {
+if (typeof GeminiAIConstructor !== 'function') {
     console.error("CRITICAL: Could not find the GoogleGenerativeAI constructor in the imported module. Check library version or Node.js environment setup.");
     process.exit(1);
 }
