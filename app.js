@@ -1,6 +1,6 @@
 import express from 'express';
-// Using ES Module import syntax for native compatibility
-import { GoogleGenerativeAI } from '@google/genai'; 
+// FIX: Changed to default import for ES Module compatibility
+import GoogleGenerativeAI from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer';
 
