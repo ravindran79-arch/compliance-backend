@@ -1,6 +1,5 @@
 // ---------------- app.js (Render-ready, official Google Generative AI setup) ----------------
 
-// Standard Express + server setup
 const express = require('express');
 const bodyParser = require('body-parser');
 require('dotenv').config();
@@ -8,7 +7,7 @@ require('dotenv').config();
 const app = express();
 app.use(bodyParser.json());
 
-// Load API key from environment
+// Load API key
 const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 if (!apiKey) {
   console.error('FATAL: GEMINI_API_KEY is not set.');
@@ -24,7 +23,6 @@ try {
   process.exit(1);
 }
 
-// Debug the export shape — appears in Render logs
 console.log('DEBUG: @google/generative-ai keys:', Object.keys(genaiPkg || {}));
 if (genaiPkg.default) {
   console.log('DEBUG: default keys:', Object.keys(genaiPkg.default || {}));
@@ -61,7 +59,6 @@ app.post('/generate', async (req, res) => {
       return res.status(400).json({ error: 'Missing prompt' });
     }
 
-    // Use Gemini model — version can be changed as needed
     const modelName = 'gemini-1.5-flash';
     const model = ai.getGenerativeModel
       ? ai.getGenerativeModel({ model: modelName })
@@ -78,4 +75,17 @@ app.post('/generate', async (req, res) => {
     const text =
       typeof response.text === 'function'
         ? response.text()
-        : response?.candidates?.[0]()
+        : response?.candidates?.[0]?.content?.parts?.[0]?.text || 'No text found';
+
+    res.json({ text });
+  } catch (err) {
+    console.error('Error generating content:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------- Start Server -----------------
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+});
