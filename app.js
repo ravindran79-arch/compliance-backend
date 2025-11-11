@@ -1,6 +1,10 @@
 import express from 'express';
-// Use namespace import as a stepping stone to find the correct constructor
-import * as genai from '@google/genai'; 
+// CRITICAL FIX START: Use Node.js compatibility layer for require()
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+// Use require() specifically for the AI library to bypass ESM import issues
+const { GoogleGenerativeAI } = require('@google/genai');
+// CRITICAL FIX END
 import cors from 'cors';
 import multer from 'multer';
 
@@ -17,19 +21,9 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// CRITICAL FIX: The final attempt at module resolution.
-// When importing a CommonJS library into an ES Module environment, the main 
-// export (the class constructor) is often nested directly under the '.default' 
-// property of the namespace object.
-const GeminiAIConstructor = genai.default; 
-
-if (typeof GeminiAIConstructor !== 'function') {
-    console.error("CRITICAL: Could not find the GoogleGenerativeAI constructor in the imported module. Check library version or Node.js environment setup.");
-    process.exit(1);
-}
-
 // Instantiate the AI client using the correctly found constructor
-const ai = new GeminiAIConstructor(apiKey);
+// The previous complex logic is replaced by the reliable require() method
+const ai = new GoogleGenerativeAI(apiKey);
 
 
 // 2. Configure CORS
