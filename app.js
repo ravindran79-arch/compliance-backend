@@ -1,6 +1,6 @@
 import express from 'express';
-// CRITICAL FIX: Using standard ES Module named import for the GoogleGenerativeAI class.
-import { GoogleGenerativeAI } from '@google/genai'; 
+// CRITICAL FIX: Changed to default import to resolve 'does not provide an export named' SyntaxError
+import GoogleGenerativeAI from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer'; 
 
