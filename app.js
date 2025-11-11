@@ -1,6 +1,6 @@
 import express from 'express';
-// FIX: Changed to default import for ES Module compatibility
-import GoogleGenerativeAI from '@google/genai'; 
+// FIX: Using namespace import (* as ...) to reliably access the GoogleGenerativeAI class in an ES Module environment
+import * as GoogleGenAI from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer';
 
@@ -17,8 +17,9 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// Instantiate the AI client
-const ai = new GoogleGenerativeAI(apiKey);
+// Instantiate the AI client using the namespace import
+// We access the class via GoogleGenAI.GoogleGenerativeAI
+const ai = new GoogleGenAI.GoogleGenerativeAI(apiKey);
 
 
 // 2. Configure CORS
