@@ -1,5 +1,5 @@
 import express from 'express';
-// CRITICAL FIX: Changed to namespace import to resolve 'does not provide an export named default' error
+// Use namespace import as a stepping stone to find the correct constructor
 import * as genai from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer';
@@ -17,8 +17,21 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// Instantiate the AI client using the correctly imported class name from the namespace
-const ai = new genai.GoogleGenerativeAI(apiKey);
+// CRITICAL FIX: Determine the correct constructor location.
+// In many Node.js ESM environments, the constructor for CJS-designed libraries
+// ends up nested under a 'default' property of the namespace import.
+const GeminiAIConstructor = genai.GoogleGenerativeAI 
+    || (genai.default && genai.default.GoogleGenerativeAI) 
+    || null;
+
+if (!GeminiAIConstructor) {
+    console.error("CRITICAL: Could not find the GoogleGenerativeAI constructor in the imported module. Check library version or Node.js environment setup.");
+    process.exit(1);
+}
+
+// Instantiate the AI client using the correctly found constructor
+const ai = new GeminiAIConstructor(apiKey);
+
 
 // 2. Configure CORS
 // CRITICAL: MUST be set to the exact domain of your GoDaddy frontend for security.
