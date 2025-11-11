@@ -1,151 +1,110 @@
+// ---------------- app.js (Render-ready, robust Google GenAI import) ----------------
+
+// Standard Express + server setup
 const express = require('express');
-// Fixed: Switched to require() for maximum compatibility with CommonJS packages
-const { GoogleGenerativeAI } = require('@google/genai'); 
-const cors = require('cors');
-const multer = require('multer');
+const bodyParser = require('body-parser');
+require('dotenv').config();
 
-// --- Initialization ---
-
-// 1. Initialize the Express application
 const app = express();
-const port = process.env.PORT || 8080;
-const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
+app.use(bodyParser.json());
 
-// Ensure API key exists before initializing AI client
+// Load API key from environment
+const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 if (!apiKey) {
-    console.error("CRITICAL: GEMINI_API_KEY environment variable is missing.");
-    process.exit(1);
+  console.error('FATAL: GEMINI_API_KEY is not set.');
+  process.exit(1);
 }
 
-// GoogleGenerativeAI is now correctly initialized as a constructor
+// ---------- Robust Import Handling for @google/genai -----------------
+const genaiPkg = (() => {
+  try {
+    return require('@google/genai');
+  } catch (e1) {
+    try {
+      // Some docs/examples use @google/generative-ai instead
+      return require('@google/generative-ai');
+    } catch (e2) {
+      console.error('CRITICAL: failed to require @google/genai and @google/generative-ai');
+      console.error('require errors:', e1 && e1.message, e2 && e2.message);
+      throw e1;
+    }
+  }
+})();
+
+// Debug the export shape — shows up in Render logs
+console.log('DEBUG: @google genai package top-level keys:', Object.keys(genaiPkg || {}));
+if (genaiPkg && genaiPkg.default) {
+  console.log('DEBUG: package.default keys:', Object.keys(genaiPkg.default || {}));
+}
+
+function findGoogleGenAIExport(pkg) {
+  if (!pkg) return null;
+
+  // 1) Named export
+  if (typeof pkg.GoogleGenerativeAI === 'function') return pkg.GoogleGenerativeAI;
+  // 2) Package itself is the class
+  if (typeof pkg === 'function') return pkg;
+  // 3) default: { GoogleGenerativeAI: class ... }
+  if (pkg.default && typeof pkg.default.GoogleGenerativeAI === 'function') return pkg.default.GoogleGenerativeAI;
+  // 4) default itself is the class
+  if (pkg.default && typeof pkg.default === 'function') return pkg.default;
+  // 5) Other possible client names (future SDK variants)
+  if (typeof pkg.GoogleGenAI === 'function') return pkg.GoogleGenAI;
+  if (typeof pkg.GoogleGenerativeAIClient === 'function') return pkg.GoogleGenerativeAIClient;
+
+  return null;
+}
+
+const GoogleGenerativeAI = findGoogleGenAIExport(genaiPkg);
+if (!GoogleGenerativeAI) {
+  console.error('CRITICAL: could not find a usable GoogleGenerativeAI constructor.');
+  console.error('Top-level package shape:', Object.keys(genaiPkg || {}));
+  process.exit(1);
+}
+
 const ai = new GoogleGenerativeAI(apiKey);
 
-// 2. Configure CORS
-// CRITICAL: MUST be set to the exact domain of your GoDaddy frontend for security.
-// Use '*' for initial testing only, but change this before production deployment!
-const allowedOrigin = '*'; 
+// ---------- Express Route Logic -----------------
 
-app.use(cors({
-    origin: allowedOrigin,
-    methods: ['POST', 'GET'], // Add GET for the root endpoint check
-}));
-
-// 3. Configure Multer (Store files in memory)
-const upload = multer({ storage: multer.memoryStorage() });
-
-// --- Helper Function: File Formatting ---
-
-/**
- * Converts a Multer file object buffer into the Part object required by the Gemini API.
- */
-const formatFileForGemini = (file) => {
-    return {
-        inlineData: {
-            data: file.buffer.toString('base64'),
-            mimeType: file.mimetype,
-        },
-    };
-};
-
-// --- Routes ---
-
-// 1. Health Check Endpoint (For Render to ensure the service is running)
 app.get('/', (req, res) => {
-    res.status(200).send('AI Compliance Backend is Running!');
+  res.send('✅ Google Generative AI service is running on Render');
 });
 
-// 2. Compliance Check Endpoint (Main Logic)
-app.post('/check-compliance', upload.fields([
-    { name: 'rfq_file', maxCount: 1 },
-    { name: 'proposal_file', maxCount: 1 }
-]), async (req, res) => {
-    // Input validation
-    if (!req.files || !req.files.rfq_file || !req.files.proposal_file) {
-        return res.status(400).json({ success: false, error: 'Missing RFQ file or Proposal file.' });
+app.post('/generate', async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: 'Missing prompt' });
     }
 
-    try {
-        const rfqFile = req.files.rfq_file[0];
-        const proposalFile = req.files.proposal_file[0];
+    // Depending on SDK version, model names differ — use the stable one:
+    const modelName = 'gemini-1.5-flash';
+    const model = ai.getGenerativeModel
+      ? ai.getGenerativeModel({ model: modelName })
+      : ai.getModel
+      ? ai.getModel({ model: modelName })
+      : null;
 
-        const rfqPart = formatFileForGemini(rfqFile);
-        const proposalPart = formatFileForGemini(proposalFile);
-
-        const model = 'gemini-2.5-flash';
-
-        // --- Step 4: The Gemini Prompt (Core Compliance Logic) ---
-        const systemInstruction = `You are a world-class Compliance Analyst AI. Your task is to rigorously review a 'Proposal' document against a 'Request for Quotation (RFQ)' document. 
-        
-        Analyze the Proposal for direct compliance with every requirement, rule, or constraint mentioned in the RFQ.
-
-        Your output MUST be a JSON array of objects, where each object details one compliance measure.
-
-        **JSON SCHEMA:**
-        [
-            {
-                "requirement_summary": "A concise summary of the specific rule from the RFQ.",
-                "proposal_excerpt": "The exact quote from the Proposal addressing the requirement.",
-                "compliance_status": "COMPLIANT" | "PARTIALLY COMPLIANT" | "NON-COMPLIANT",
-                "actionable_insight": "If the status is not COMPLIANT, provide a 1-sentence instruction on how to fix or improve the proposal."
-            }
-        ]
-        
-        Ensure your response is ONLY the JSON array. Do not include any introductory or concluding text, or markdown formatting outside of the JSON structure itself.`;
-        
-        // The prompt sends the instruction, the files, and a final instruction to execute
-        const promptParts = [
-            systemInstruction,
-            "RFQ Document (Rules): ",
-            rfqPart,
-            "Proposal Document (Response): ",
-            proposalPart,
-            "Analyze the Proposal Document based on the RFQ Document and return the analysis EXCLUSIVELY as the JSON array defined in the System Instruction."
-        ];
-
-        // 5. Call the Gemini API
-        const response = await ai.models.generateContent({
-            model: model,
-            contents: promptParts,
-            config: {
-                // Force the model to return JSON that matches the schema
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: "ARRAY",
-                    items: {
-                        type: "OBJECT",
-                        properties: {
-                            "requirement_summary": { "type": "STRING", "description": "Summary of the rule from the RFQ." },
-                            "proposal_excerpt": { "type": "STRING", "description": "Quote from the proposal that responds to the rule." },
-                            "compliance_status": { "type": "STRING", "enum": ["COMPLIANT", "PARTIALLY COMPLIANT", "NON-COMPLIANT"] },
-                            "actionable_insight": { "type": "STRING", "description": "Instruction to fix if not compliant." }
-                        },
-                        required: ["requirement_summary", "proposal_excerpt", "compliance_status", "actionable_insight"]
-                    }
-                }
-            }
-        });
-
-        // The response text is guaranteed to be a JSON string due to responseMimeType
-        const complianceData = JSON.parse(response.text);
-
-        // 6. Send Success Response
-        res.json({ success: true, analysis: complianceData });
-
-    } catch (error) {
-        // Log the detailed error to the console
-        console.error('Compliance Check Error:', error);
-        
-        // Send a generic 500 error to the client
-        res.status(500).json({ 
-            success: false, 
-            error: 'An internal server error occurred during the compliance check. Check file formats and server logs.' 
-        });
+    if (!model) {
+      throw new Error('SDK did not expose getGenerativeModel() or getModel()');
     }
+
+    const result = await model.generateContent(prompt);
+    const response = result?.response || result;
+    const text =
+      typeof response.text === 'function'
+        ? response.text()
+        : response?.candidates?.[0]?.content?.parts?.[0]?.text || 'No text found';
+
+    res.json({ text });
+  } catch (err) {
+    console.error('Error generating content:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// --- Start Server ---
-// CRITICAL FIX: The server MUST listen on '0.0.0.0' for Render
-const host = '0.0.0.0'; 
-app.listen(port, host, () => {
-    console.log(`Server listening at http://${host}:${port}`);
+// ---------- Start Server -----------------
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
