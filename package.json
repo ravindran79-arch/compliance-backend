@@ -1,6 +1,6 @@
 {
   "name": "google-genai-render-app",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Express server using Google Generative AI (robust CommonJS/ESM compatible setup for Render).",
   "main": "app.js",
   "scripts": {
@@ -10,15 +10,14 @@
   "engines": {
     "node": ">=20.0.0"
   },
- "dependencies": {
-  "@google/generative-ai": "^0.17.0",
-  "express": "^4.19.2",
-  "body-parser": "^1.20.3",
-  "dotenv": "^16.4.5"
-}
+  "dependencies": {
+    "@google/generative-ai": "^0.17.0",
+    "express": "^4.19.2",
+    "body-parser": "^1.20.3",
+    "dotenv": "^16.4.5"
+  },
   "devDependencies": {
     "nodemon": "^3.1.4"
   },
   "license": "MIT"
 }
-
