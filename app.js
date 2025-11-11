@@ -1,6 +1,6 @@
 import express from 'express';
-// CRITICAL FIX: Changed from named import to default import to resolve 'SyntaxError: The requested module...@google/genai' error
-import GoogleGenerativeAI from '@google/genai'; 
+// CRITICAL FIX: Changed to namespace import to resolve 'does not provide an export named default' error
+import * as genai from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer';
 
@@ -17,8 +17,8 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// Instantiate the AI client using the correctly imported class name
-const ai = new GoogleGenerativeAI(apiKey);
+// Instantiate the AI client using the correctly imported class name from the namespace
+const ai = new genai.GoogleGenerativeAI(apiKey);
 
 // 2. Configure CORS
 // CRITICAL: MUST be set to the exact domain of your GoDaddy frontend for security.
