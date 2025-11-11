@@ -2,9 +2,9 @@
   "name": "ai-compliance-backend",
   "version": "1.0.0",
   "description": "Backend API for AI-driven compliance checking using the Gemini API.",
-  "main": "app.js",
+  "main": "app.cjs",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.cjs"
   },
   "dependencies": {
     "@google/genai": "^0.15.0",
