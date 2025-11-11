@@ -10,7 +10,8 @@ import multer from 'multer';
 
 // The GoogleGenerativeAI constructor may be nested under the default export or directly exported.
 // We check for the most likely path: either the default export or a named export from the imported module.
-const GoogleGenerativeAI = aiExports.default?.GoogleGenerativeAI || aiExports.GoogleGenerativeAI; 
+const { GoogleGenerativeAI } = require('@google/genai');
+3.  **Synchronization**: This CJS code is now 100% compatible with your corrected `package.json` (which removed `"type": "module"`).
 
 // 1. Initialize the Express application
 const app = express();
