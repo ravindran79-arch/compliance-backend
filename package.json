@@ -1,15 +1,17 @@
 {
   "name": "ai-compliance-backend",
   "version": "1.0.0",
-  "description": "Backend API for AI-driven compliance checking using the Gemini API.",
+  "description": "Backend service for AI compliance checking",
   "main": "app.js",
+  "type": "module",  <-- ADD THIS LINE
   "scripts": {
     "start": "node app.js"
   },
   "dependencies": {
-    "@google/genai": "^0.15.0",
+    "express": "^4.18.2",
+    "@google/genai": "^0.13.0",
     "cors": "^2.8.5",
-    "express": "^4.19.2",
     "multer": "^1.4.5-lts.1"
   }
 }
+
