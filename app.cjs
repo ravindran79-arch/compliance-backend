@@ -1,8 +1,8 @@
-import express from 'express';
-// FIX: Using namespace import (* as ...) to reliably access the GoogleGenerativeAI class in an ES Module environment
-import * as GoogleGenAI from '@google/genai'; 
-import cors from 'cors';
-import multer from 'multer';
+const express = require('express');
+// CRITICAL FIX: Changed import to the stable CommonJS require() to resolve "is not a constructor" error
+const { GoogleGenerativeAI } = require('@google/genai'); 
+const cors = require('cors');
+const multer = require('multer');
 
 // --- Initialization ---
 
@@ -17,9 +17,8 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// Instantiate the AI client using the namespace import
-// We access the class via GoogleGenAI.GoogleGenerativeAI
-const ai = new GoogleGenAI.GoogleGenerativeAI(apiKey);
+// Instantiate the AI client using the reliable CommonJS require() method
+const ai = new GoogleGenerativeAI(apiKey);
 
 
 // 2. Configure CORS
@@ -33,7 +32,6 @@ app.use(cors({
 }));
 
 // 3. Configure Multer (Store files in memory)
-// Note: Multer must be imported as a default module, hence the import multer from 'multer';
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Helper Function: File Formatting ---
