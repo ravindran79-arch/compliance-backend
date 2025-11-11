@@ -1,5 +1,5 @@
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/genai';
+import * as genai_pkg from '@google/genai'; // Fixed import: Use default import for CommonJS package
 import cors from 'cors';
 import multer from 'multer';
 
@@ -9,6 +9,9 @@ import multer from 'multer';
 const app = express();
 const port = process.env.PORT || 8080;
 const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
+
+// Destructure the required class from the imported package
+const { GoogleGenerativeAI } = genai_pkg;
 
 // Ensure API key exists before initializing AI client
 if (!apiKey) {
