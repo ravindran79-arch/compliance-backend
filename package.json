@@ -10,14 +10,15 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "dependencies": {
-    "@google/genai": "^0.5.0",
-    "express": "^4.19.2",
-    "body-parser": "^1.20.3",
-    "dotenv": "^16.4.5"
-  },
+ "dependencies": {
+  "@google/generative-ai": "^0.17.0",
+  "express": "^4.19.2",
+  "body-parser": "^1.20.3",
+  "dotenv": "^16.4.5"
+}
   "devDependencies": {
     "nodemon": "^3.1.4"
   },
   "license": "MIT"
 }
+
