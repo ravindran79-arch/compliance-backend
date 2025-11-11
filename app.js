@@ -1,8 +1,8 @@
-const express = require('express');
-// CRITICAL FIX: Changed import to the stable CommonJS require() to resolve "is not a constructor" error
-const { GoogleGenerativeAI } = require('@google/genai'); 
-const cors = require('cors');
-const multer = require('multer');
+import express from 'express';
+// CRITICAL FIX: Using standard ES Module named import for the GoogleGenerativeAI class.
+import { GoogleGenerativeAI } from '@google/genai'; 
+import cors from 'cors';
+import multer from 'multer'; // Multer is imported as a default export in ESM
 
 // --- Initialization ---
 
@@ -17,7 +17,7 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// Instantiate the AI client using the reliable CommonJS require() method
+// Instantiate the AI client using the standard ES Module import method
 const ai = new GoogleGenerativeAI(apiKey);
 
 
