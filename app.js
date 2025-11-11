@@ -1,5 +1,5 @@
 import express from 'express';
-import * as genai_pkg from '@google/genai'; // Fixed import: Use default import for CommonJS package
+import * as genai_pkg from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer';
 
@@ -10,8 +10,11 @@ const app = express();
 const port = process.env.PORT || 8080;
 const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
-// Destructure the required class from the imported package
-const { GoogleGenerativeAI } = genai_pkg;
+// Fix for CommonJS/ESM bridge error (TypeError: GoogleGenerativeAI is not a constructor):
+// Access the GoogleGenerativeAI class from the imported package's exports, 
+// checking for nesting under the 'default' property (common for CJS in ESM environments).
+const packageExports = genai_pkg.default || genai_pkg;
+const GoogleGenerativeAI = packageExports.GoogleGenerativeAI;
 
 // Ensure API key exists before initializing AI client
 if (!apiKey) {
