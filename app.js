@@ -1,7 +1,7 @@
-const express = require('express');
-const GoogleGenerativeAI = require('@google/genai').GoogleGenerativeAI;
-const cors = require('cors');
-const multer = require('multer');
+import express from 'express';
+import { GoogleGenerativeAI } from '@google/genai';
+import cors from 'cors';
+import multer from 'multer';
 
 // --- Initialization ---
 
