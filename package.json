@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Backend service for AI compliance checking",
   "main": "app.js",
-  "type": "module",  <-- ADD THIS LINE
+  "type": "module",
   "scripts": {
     "start": "node app.js"
   },
