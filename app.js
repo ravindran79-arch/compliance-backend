@@ -1,17 +1,9 @@
-import express from 'express';
-// CRITICAL FIX: The GoogleGenerativeAI class is often a named export from the default object
-// in complex module structures. We use a combination of default and named import syntax.
-// We must ensure the correct class name is used upon instantiation.
-import * as aiExports from '@google/genai'; 
-import cors from 'cors';
-import multer from 'multer'; 
+const express = require('express');
+const GoogleGenerativeAI = require('@google/genai').GoogleGenerativeAI;
+const cors = require('cors');
+const multer = require('multer');
 
 // --- Initialization ---
-
-// The GoogleGenerativeAI constructor may be nested under the default export or directly exported.
-// We check for the most likely path: either the default export or a named export from the imported module.
-const { GoogleGenerativeAI } = require('@google/genai');
-3.  **Synchronization**: This CJS code is now 100% compatible with your corrected `package.json` (which removed `"type": "module"`).
 
 // 1. Initialize the Express application
 const app = express();
@@ -19,18 +11,12 @@ const port = process.env.PORT || 8080;
 const apiKey = process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.trim() : null;
 
 // Ensure API key exists before initializing AI client
-if (!GoogleGenerativeAI) {
-    console.error("CRITICAL: Failed to load GoogleGenerativeAI class from the SDK.");
-    process.exit(1);
-}
 if (!apiKey) {
     console.error("CRITICAL: GEMINI_API_KEY environment variable is missing.");
     process.exit(1);
 }
 
-// Instantiate the AI client
 const ai = new GoogleGenerativeAI(apiKey);
-
 
 // 2. Configure CORS
 // CRITICAL: MUST be set to the exact domain of your GoDaddy frontend for security.
