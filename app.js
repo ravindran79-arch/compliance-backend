@@ -1,5 +1,6 @@
 import express from 'express';
-import { GoogleGenerativeAI } from '@google/genai';
+// CRITICAL FIX: Changed from named import to default import to resolve 'SyntaxError: The requested module...@google/genai' error
+import GoogleGenerativeAI from '@google/genai'; 
 import cors from 'cors';
 import multer from 'multer';
 
@@ -16,6 +17,7 @@ if (!apiKey) {
     process.exit(1);
 }
 
+// Instantiate the AI client using the correctly imported class name
 const ai = new GoogleGenerativeAI(apiKey);
 
 // 2. Configure CORS
