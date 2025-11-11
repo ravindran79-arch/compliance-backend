@@ -11,11 +11,11 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 # Copy the rest of the application code into the container
-# This copies your fixed app.cjs file
+# This copies your fixed app.js file
 COPY . .
 
 # Expose the default port (optional but good practice)
 EXPOSE 8080
 
-# Define the command to run the application (which uses app.cjs)
+# Define the command to run the application (which uses app.js)
 CMD [ "npm", "start" ]
