@@ -2,7 +2,7 @@ import express from 'express';
 // CRITICAL FIX: Using standard ES Module named import for the GoogleGenerativeAI class.
 import { GoogleGenerativeAI } from '@google/genai'; 
 import cors from 'cors';
-import multer from 'multer'; // Multer is imported as a default export in ESM
+import multer from 'multer'; 
 
 // --- Initialization ---
 
