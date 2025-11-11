@@ -1,12 +1,7 @@
-import express from 'express';
-// CRITICAL FIX START: Use Node.js compatibility layer for require()
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-// Use require() specifically for the AI library to bypass ESM import issues
-const { GoogleGenerativeAI } = require('@google/genai');
-// CRITICAL FIX END
-import cors from 'cors';
-import multer from 'multer';
+const express = require('express');
+const { GoogleGenerativeAI } = require('@google/genai'); // Reverting to CJS require
+const cors = require('cors');
+const multer = require('multer');
 
 // --- Initialization ---
 
@@ -21,8 +16,7 @@ if (!apiKey) {
     process.exit(1);
 }
 
-// Instantiate the AI client using the correctly found constructor
-// The previous complex logic is replaced by the reliable require() method
+// Instantiate the AI client using the reliable CommonJS require() method
 const ai = new GoogleGenerativeAI(apiKey);
 
 
