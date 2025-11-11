@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend API for AI-driven compliance checking using the Gemini API.",
   "main": "app.js",
-  "type": "module",
   "scripts": {
     "start": "node app.js"
   },
