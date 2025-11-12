@@ -3,9 +3,18 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 require('dotenv').config();
+const cors = require('cors'); // ✅ Added for CORS
 
 const app = express();
 app.use(bodyParser.json());
+
+// ---------- CORS Setup -----------------
+// Allow only your Render static front-end to access this backend
+const FRONTEND_URL = "https://render-static-site-te8v.onrender.com";
+app.use(cors({
+    origin: FRONTEND_URL,
+    methods: ['GET', 'POST'],
+}));
 
 // Load API key
 const apiKey = (process.env.GEMINI_API_KEY || '').trim();
