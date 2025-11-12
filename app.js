@@ -110,8 +110,8 @@ ${proposalText}
 Provide a compliance score, highlight mismatches, and suggest improvements.
 `;
 
-        // Call Google Generative AI
-        const modelName = 'gemini-1.5-flash';
+        // ✅ Use supported model
+        const modelName = 'text-bison-001'; // fixed
         const model = ai.getGenerativeModel
             ? ai.getGenerativeModel({ model: modelName })
             : ai.getModel
