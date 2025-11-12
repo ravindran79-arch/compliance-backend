@@ -1,15 +1,12 @@
-// ---------------- app.js (Render-ready, official Google Generative AI setup) ----------------
-
 const express = require('express');
 const bodyParser = require('body-parser');
 require('dotenv').config();
-const cors = require('cors'); // ✅ Added for CORS
+const cors = require('cors'); // Added for CORS
 
 const app = express();
 app.use(bodyParser.json());
 
 // ---------- CORS Setup -----------------
-// Allow only your Render static front-end to access this backend
 const FRONTEND_URL = "https://render-static-site-te8v.onrender.com";
 app.use(cors({
     origin: FRONTEND_URL,
@@ -23,18 +20,13 @@ if (!apiKey) {
   process.exit(1);
 }
 
-// ---------- Robust Import Handling for @google/generative-ai -----------------
+// Robust import handling for @google/generative-ai
 let genaiPkg;
 try {
   genaiPkg = require('@google/generative-ai');
 } catch (e) {
   console.error('CRITICAL: failed to require @google/generative-ai:', e.message);
   process.exit(1);
-}
-
-console.log('DEBUG: @google/generative-ai keys:', Object.keys(genaiPkg || {}));
-if (genaiPkg.default) {
-  console.log('DEBUG: default keys:', Object.keys(genaiPkg.default || {}));
 }
 
 function findGoogleGenAIExport(pkg) {
@@ -55,8 +47,7 @@ if (!GoogleGenerativeAI) {
 
 const ai = new GoogleGenerativeAI(apiKey);
 
-// ---------- Express Routes -----------------
-
+// Routes
 app.get('/', (req, res) => {
   res.send('✅ Google Generative AI service is running on Render');
 });
@@ -93,7 +84,6 @@ app.post('/generate', async (req, res) => {
   }
 });
 
-// ---------- Start Server -----------------
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server listening on port ${PORT}`);
