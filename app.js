@@ -1,79 +1,61 @@
-// app.js
 import express from "express";
-import bodyParser from "body-parser";
+import multer from "multer";
 import cors from "cors";
-import { GenerativeAI } from "@google/generative-ai";
+import bodyParser from "body-parser";
 import dotenv from "dotenv";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
-// Check for API key
-if (!process.env.GOOGLE_API_KEY) {
-  console.error("❌ Missing GOOGLE_API_KEY in environment variables");
-  process.exit(1);
-}
-
-// Configure Generative AI client
-const client = new GenerativeAI({
-  apiKey: process.env.GOOGLE_API_KEY,
-});
-
-// Middleware
 app.use(cors());
-app.use(bodyParser.json({ limit: "10mb" }));
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-// Health check
-app.get("/", (req, res) => {
-  res.send({ status: "Backend running" });
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
-// Compliance check endpoint
-app.post("/compliance-check", async (req, res) => {
+app.post("/compliance-check", upload.fields([{ name: "rfq" }, { name: "proposal" }]), async (req, res) => {
   try {
-    const { rfqText, proposalText } = req.body;
+    const rfq = req.files["rfq"]?.[0];
+    const proposal = req.files["proposal"]?.[0];
 
-    if (!rfqText || !proposalText) {
-      return res.status(400).json({ error: "Missing RFQ or Proposal text" });
+    if (!rfq || !proposal) {
+      return res.status(400).json({ error: "Missing RFQ or Proposal file" });
     }
 
-    // Combine documents for analysis
+    const rfqText = rfq.buffer.toString("utf-8");
+    const proposalText = proposal.buffer.toString("utf-8");
+
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const prompt = `
-      Compare the following RFQ and Proposal documents for compliance.
-      Provide a detailed analysis, highlighting missing or incorrect items.
+You are a compliance checker. Compare the following two documents and generate a compliance analysis summary.
+1. RFQ Document:
+${rfqText}
 
-      RFQ:
-      ${rfqText}
+2. Proposal Document:
+${proposalText}
 
-      Proposal:
-      ${proposalText}
-    `;
+Provide the result as a structured JSON with:
+{
+  "complianceSummary": "...",
+  "missingPoints": [...],
+  "strengths": [...]
+}
+`;
 
-    // Call Google Generative AI
-    const response = await client.generateText({
-      model: "gemini-1.5",
-      prompt: prompt,
-      temperature: 0,
-      maxOutputTokens: 500,
-    });
+    const result = await model.generateContent(prompt);
+    const responseText = result.response.text();
 
-    res.json({ analysis: response.outputText });
+    res.json({ analysis: responseText });
   } catch (error) {
-    console.error(error);
-    if (error?.response?.status) {
-      res
-        .status(error.response.status)
-        .json({ error: error.message || "AI request failed" });
-    } else {
-      res.status(500).json({ error: error.message || "Server error" });
-    }
+    console.error("Error in /compliance-check:", error);
+    res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 });
 
-// Start server
 app.listen(port, () => {
-  console.log(`✅ Backend running on port ${port}`);
+  console.log(`Server running on port ${port}`);
 });
