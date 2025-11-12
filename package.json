@@ -1,7 +1,7 @@
 {
   "name": "google-genai-render-app",
   "version": "1.0.2",
-  "description": "Express server using Google Generative AI (with file upload support for Render).",
+  "description": "Express backend for compliance analysis using Google Generative AI.",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
@@ -11,14 +11,11 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.17.0",
+    "@google/generative-ai": "^0.19.0",
     "express": "^4.19.2",
     "body-parser": "^1.20.3",
     "dotenv": "^16.4.5",
-    "cors": "^2.8.5",
-    "multer": "^1.4.5-lts.1",
-    "pdf-parse": "^1.1.1",
-    "mammoth": "^1.4.21"
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
