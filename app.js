@@ -1,146 +1,63 @@
-const express = require('express');
-const multer = require('multer'); // For file uploads
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const fs = require('fs');
-const path = require('path');
-const pdfParse = require('pdf-parse');
-const mammoth = require('mammoth'); // For DOCX
-require('dotenv').config();
+// app.js
 
+const express = require("express");
+const bodyParser = require("body-parser");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const multer = require("multer");
+const fs = require("fs");
+const path = require("path");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+
+dotenv.config();
 const app = express();
+app.use(cors());
 app.use(bodyParser.json());
 
-// ---------- CORS Setup ----------
-const FRONTEND_URL = "https://render-static-site-te8v.onrender.com";
-app.use(cors({
-    origin: FRONTEND_URL,
-    methods: ['GET','POST'],
-}));
+// Configure Multer for file uploads
+const upload = multer({ dest: "uploads/" });
 
-// ---------- Google Generative AI Setup ----------
-const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-if (!apiKey) {
-    console.error('FATAL: GEMINI_API_KEY is not set.');
-    process.exit(1);
-}
+// Initialize Google Generative AI client
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // ✅ updated model
 
-let genaiPkg;
-try {
-    genaiPkg = require('@google/generative-ai');
-} catch (e) {
-    console.error('CRITICAL: failed to require @google/generative-ai:', e.message);
-    process.exit(1);
-}
-
-function findGoogleGenAIExport(pkg) {
-    if (!pkg) return null;
-    if (typeof pkg.GoogleGenerativeAI === 'function') return pkg.GoogleGenerativeAI;
-    if (typeof pkg === 'function') return pkg;
-    if (pkg.default && typeof pkg.default.GoogleGenerativeAI === 'function') return pkg.default.GoogleGenerativeAI;
-    if (pkg.default && typeof pkg.default === 'function') return pkg.default;
-    return null;
-}
-
-const GoogleGenerativeAI = findGoogleGenAIExport(genaiPkg);
-if (!GoogleGenerativeAI) {
-    console.error('CRITICAL: Could not find GoogleGenerativeAI constructor.');
-    process.exit(1);
-}
-
-const ai = new GoogleGenerativeAI(apiKey);
-
-// ---------- Multer Setup for File Uploads ----------
-const upload = multer({ dest: 'uploads/' });
-
-// ---------- Utility Functions ----------
-async function extractTextFromFile(file) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    let text = '';
-
-    if (ext === '.pdf') {
-        const data = fs.readFileSync(file.path);
-        const pdfData = await pdfParse(data);
-        text = pdfData.text;
-    } else if (ext === '.docx' || ext === '.doc') {
-        const data = fs.readFileSync(file.path);
-        const result = await mammoth.extractRawText({ buffer: data });
-        text = result.value;
-    } else if (ext === '.txt') {
-        text = fs.readFileSync(file.path, 'utf-8');
-    } else {
-        throw new Error(`Unsupported file type: ${ext}`);
+// Route for compliance checking
+app.post("/compliance-check", upload.array("files", 2), async (req, res) => {
+  try {
+    if (!req.files || req.files.length !== 2) {
+      return res.status(400).json({ error: "Please upload both RFQ and Proposal files." });
     }
 
-    return text.trim();
-}
+    // Read and convert the two files to text
+    const [rfqFile, proposalFile] = req.files;
+    const rfqText = fs.readFileSync(rfqFile.path, "utf-8");
+    const proposalText = fs.readFileSync(proposalFile.path, "utf-8");
 
-// ---------- Routes ----------
-app.get('/', (req, res) => {
-    res.send('✅ Google Generative AI compliance backend is running');
+    // Prompt to the model
+    const prompt = `
+      Compare the following two documents for compliance.
+      Document 1 (RFQ): ${rfqText}
+      Document 2 (Proposal): ${proposalText}
+      Provide a concise compliance summary and highlight mismatches.
+    `;
+
+    const result = await model.generateContent(prompt);
+    const aiResponse = await result.response.text();
+
+    // Clean up uploaded files
+    fs.unlinkSync(rfqFile.path);
+    fs.unlinkSync(proposalFile.path);
+
+    res.json({ result: aiResponse });
+  } catch (error) {
+    console.error("Backend Error:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
-// POST /compliance-check
-app.post('/compliance-check', upload.fields([
-    { name: 'rfq', maxCount: 1 },
-    { name: 'proposal', maxCount: 1 }
-]), async (req, res) => {
-    try {
-        const rfqFile = req.files?.rfq?.[0];
-        const proposalFile = req.files?.proposal?.[0];
-
-        if (!rfqFile || !proposalFile) {
-            return res.status(400).json({ error: 'Both RFQ and Proposal files are required.' });
-        }
-
-        // Extract text
-        const rfqText = await extractTextFromFile(rfqFile);
-        const proposalText = await extractTextFromFile(proposalFile);
-
-        // Combine into a prompt
-        const prompt = `
-Compare the following RFQ and Proposal documents for compliance:
-
-RFQ:
-${rfqText}
-
-Proposal:
-${proposalText}
-
-Provide a compliance score, highlight mismatches, and suggest improvements.
-`;
-
-        // ✅ Use supported model
-        const modelName = 'text-bison-001'; // fixed
-        const model = ai.getGenerativeModel
-            ? ai.getGenerativeModel({ model: modelName })
-            : ai.getModel
-            ? ai.getModel({ model: modelName })
-            : null;
-
-        if (!model) throw new Error('SDK did not expose getGenerativeModel() or getModel()');
-
-        const result = await model.generateContent(prompt);
-        const response = result?.response || result;
-        const text = typeof response.text === 'function'
-            ? response.text()
-            : response?.candidates?.[0]?.content?.parts?.[0]?.text || 'No text returned';
-
-        res.json({ success: true, result: text });
-
-    } catch (err) {
-        console.error('Error in compliance-check:', err);
-        res.status(500).json({ success: false, error: err.message });
-    } finally {
-        // Clean up uploaded files
-        if (req.files) {
-            Object.values(req.files).flat().forEach(file => fs.unlink(file.path, () => {}));
-        }
-    }
+app.get("/", (req, res) => {
+  res.send("✅ Compliance backend is running successfully!");
 });
 
-// ---------- Start Server ----------
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Compliance backend running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
